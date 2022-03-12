@@ -5,121 +5,190 @@ tag_map = {}
 
 # Headers: 1 to 6 #'s
 for i in range(1, 7):
-	tag_map[f"<h{i}>"] = [re.compile("^(" + ("#" * i) + r"\s+(?P<text>.*))$")]
+	tag_map[f"<h{i}>"] = [re.compile("^(" + ("#" * i) + r"\s+(.*))$")]
 
-# TODO: change order of closing tags
 # All bold and italic: ***
-tag_map["<strong><em>"] = [re.compile(r"(\*{3}(?P<text>.*?)\*{3})")]
+tag_map["<strong><em>"] = [re.compile(r"(\*{3}(.*?)\*{3})")]
 
 # Bold: ** and __
 tag_map["<strong>"] = [
-    re.compile(r"((?<!\*)\*{2}(?!\*)(?P<text>.*?)(?<!\*)\*{2}(?!\*))"),
+    re.compile(r"((?<!\*)\*{2}(?!\*)(.*?)(?<!\*)\*{2}(?!\*))"),
     re.compile(r"(_{2}(?P<text2>.*?)_{2})")
 ]
 
 # Italic: * and _
 tag_map["<em>"] = [
-    re.compile(r"((?<!\*)\*{1}?(?!\*)(?P<text>.*?)(?<!\*)\*{1}(?!\*))"),
+    re.compile(r"((?<!\*)\*{1}?(?!\*)(.*?)(?<!\*)\*{1}(?!\*))"),
     re.compile(r"((?<!_)_{1}(?!_)(?P<text2>.*?)(?<!_)_{1}(?!_))")
 ]
 
-# Strikethrough: ** and __
-tag_map["<strike>"] = [re.compile(r"((?<!~)~{2}(?!~)(?P<text>.*?)(?<!~)~{2}(?!~))")]
+# Strikethrough: ~~
+tag_map["<strike>"] = [re.compile(r"((?<!~)~{2}(?!~)(.*?)(?<!~)~{2}(?!~))")]
 
-# TODO: links
-# TODO: marked lists
-# TODO: paragraphs at start and after blank lines
+# Links
+tag_map["<a>"] = [re.compile(r"(\[(.*?)\]\((.*?)\))")]
 
-s = """Should be a paragraph with _italic_ and *italic*. The second sentence has **bold** and __bold__.
+# Marked lists: * and -
+tag_map["<li>"] = [re.compile(r"(-\s(.*))"),
+    re.compile(r"(\*\s(.*))")
+]
 
-Should start a paragraph with ***bold and italic***.
+# Utility regular expressions
+rx_h_or_li = re.compile(r"^(#{1,6}|\*|-)\s+")
+rx_li = re.compile(r"^(\*|-)\s+")
 
-Should start a paragraph with **bold and _nested italic_**. The second sentence has _italic with **nested bold**_.
-This is a new line but not a ~~paragraph~~.
+def parse_markdown(md_str):
+    '''Converts GitHub-style markdown into HTML code
 
-# H1
-## H2
-### H3
-#### H4
-##### H5
-###### H6
+    Supported markdown:
+    * headers
+    * links
+    * lists
+    * bold and italic (incl. inline)
 
-Should be a paragraph"""
+        Parameters:
+            md_str (str): A string containing markdown
 
-def parse(md_str):
+        Returns:
+            parse_markdown (str): A string containing HTML code
+'''
+    
+    # Result variable
     out_html = ""
+
+    # Helper variables
     paragraph_opened = False
-    lines = md_str.split("\n")
+    list_opened = False
     prev_line = None
+
+    # Check code line by line
+    lines = md_str.split("\n")
+
     for line in lines:
-        print(f"Line: '{line}'")
-        if line != "" and line[0] in ["#", "*", "-"]:
-            print(f"This is a header or a list item, not starting a paragraph.")
-            paragraph_opened = False
-        else:
-            print(f"This is text")
-            if line == "" and paragraph_opened:
-                print(f"This is an empty line and paragraph has been opened.\n<<<Closing the paragraph.")
+
+        # Save initial line for lookback purposes
+        initial_line = line
+
+        # If this line is a header or a list item
+        # and a paragraph is open, then close the paragraph
+        if line != "" and rx_h_or_li.search(line) is not None:
+            if paragraph_opened:
                 out_html += "</p>\n"
                 paragraph_opened = False
-                prev_line = line
-                print()
+
+        else:
+            # If this line is empty
+            # and a paragraph is open, then close the paragraph,
+            # save the initial line as previous,
+            # and skip processing
+            if line == "" and paragraph_opened:
+                out_html += "</p>\n"
+                paragraph_opened = False
+                prev_line = initial_line
                 continue
+            
+            # If it is not a list item, but previous line is,
+            # then close the marked list
+            elif prev_line is not None \
+                and len(prev_line) > 0 \
+                and rx_li.search(prev_line) is not None \
+                and list_opened:
 
-            print(f"prev_line = '{prev_line}'")
+                line += "</ul>"
+                list_opened = False
 
-            if prev_line is None or prev_line == "":
-                print(f">>>Starting a paragraph")
+            # If this line is neither a header, nor a list,
+            # and it is the first line or follows an empty line,
+            # then start a paragraph 
+            if line != "" and (prev_line is None or prev_line == ""):
                 out_html += '<p dir="auto">\n'
-                paragraph_opened = True           
+                paragraph_opened = True
 
+        # Check the line for markdown
         for tag in tag_map:
             rxs = tag_map[tag]
+
+            # Loop through all markdown variants for a tag
             for rx in rxs:
                 found = False
-                # TODO: walk through the string with ungreedy patterns
-                # TODO: matching and replacing one by one using positions
                 matches = rx.findall(line)
+
                 for match in matches:
+                    # Inner text
                     text = ""
+                    # Text with markdown
                     text_to_replace = ""
+
                     if len(match) > 0:
                         found = True
 
+                        # Type check is left for compatibility reasons.
+                        # Patterns implemented by 2022-03-12 return tuples
                         if type(match) is str:
                             text = match
 
                         else:
+                            # Save text with markdown
                             text_to_replace = match[0]
                             for result in match:
                                 if result != "" and result != text_to_replace:
+                                    # Save inner text
                                     text = result
-                                    break
-                        print(f"text = '{text}'")
 
+                        # Decide on closing tag
                         closing_tag = ""
-
+                        # *** must be checked individually
                         if tag == "<strong><em>":
                             closing_tag = "</em></strong>"
                         else:
                             closing_tag = tag.replace("<", "</")
 
-                        line = line.replace(text_to_replace, f"{tag}{text}{closing_tag}")
+                        # Process individual tags that need attention
+
+                        # Link has 3 groups: markdown, link text and link URL
+                        if tag == "<a>":
+                            line = line.replace(text_to_replace, f'<a href="{match[2]}">{match[1]}{closing_tag}')
+                        else:
+                            # Use the same template for all other tags
+                            line = line.replace(text_to_replace, f"{tag}{text}{closing_tag}")
+                            
+                            # Open a marked list, if this line is a first list item
+                            if tag == "<li>":
+                                if not list_opened:
+                                    list_opened = True
+                                    line = f'<ul dir="auto">\n{line}'
                         #end for
-        prev_line = line
+
+        # Save the initial line state as previous
+        prev_line = initial_line
         # Append the processed line
         out_html += line + "\n"
-        print()
 
-    # Close a paragraph if opened
+    # Close a paragraph or a list if opened (e.g. at EOF)
     if paragraph_opened:
         out_html += "</p>"
+    elif list_opened:
+        out_html += "</ul>"
 
     return out_html
 
+# ============================================================================
+# Test code
+
 if __name__ == '__main__':
-    file = open("tmp.txt", "w")
-    file.write(parse(s))
-    file.close()
-    file = open("tmp.txt", "r")
-    print(file.read())
+
+    s = """# Block **with _inline_ spans**
+
+#Not a header
+-Not a list item
+
+Paragraph with [GitHub Pages link](https://pages.github.com/).
+The same paragraph with ***bold and italic***, **bold with inline _italic_** and *italic with inline __bold__*.
+
+* item 1
+* item 2
+
+Last paragraph"""
+
+    print(parse_markdown(s))
+    # print(parse_markdown.__doc__)
