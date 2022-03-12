@@ -1,7 +1,7 @@
 '''Convers GitHub-styled markdown to HTML
 
 Functions:
-    markdown2html(string)
+    md2html(string)
 '''
 import re
 
@@ -42,7 +42,7 @@ tag_map["<li>"] = [re.compile(r"(-\s(.*))"),
 rx_h_or_li = re.compile(r"^(#{1,6}|\*|-)\s+")
 rx_li = re.compile(r"^(\*|-)\s+")
 
-def markdown2html(md_str):
+def md2html(md_str):
     '''Converts GitHub-style markdown into HTML code
 
     Supported markdown:
@@ -55,7 +55,7 @@ def markdown2html(md_str):
             md_str (str): A string containing markdown
 
         Returns:
-            markdown2html (str): A string containing HTML code
+            md2html (str): A string containing HTML code
 '''
     
     # Result variable
@@ -195,5 +195,5 @@ The same paragraph with ***bold and italic***, **bold with inline _italic_** and
 
 Last paragraph"""
 
-    print(markdown2html(s))
-    # print(markdown2html.__doc__)
+    print(md2html(s))
+    # print(md2html.__doc__)
