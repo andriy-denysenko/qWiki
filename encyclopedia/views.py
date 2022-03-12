@@ -1,6 +1,7 @@
 from django.shortcuts import render
 
 from . import util
+from . import md2html
 
 
 def index(request):
@@ -10,6 +11,6 @@ def index(request):
 
 def entry(request, title):
     return render(request, "encyclopedia/entry.html", {
-        "entry": util.get_entry(title),
+        "entry": md2html.md2html(util.get_entry(title)),
         "title": title
     })
