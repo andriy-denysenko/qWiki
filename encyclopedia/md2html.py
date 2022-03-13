@@ -57,7 +57,10 @@ def md2html(md_str):
         Returns:
             md2html (str): A string containing HTML code
 '''
-    
+    # If the string is empty, return an empty string
+    if md_str is None or md_str == "":
+        return ""
+
     # Result variable
     out_html = ""
 
@@ -194,6 +197,10 @@ The same paragraph with ***bold and italic***, **bold with inline _italic_** and
 * item 2
 
 Last paragraph"""
+
+    # s = "Single line *with markdown*"
+
+    # s = ""
 
     print(md2html(s))
     # print(md2html.__doc__)
