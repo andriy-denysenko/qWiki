@@ -1,0 +1,15 @@
+{% extends "encyclopedia/layout.html" %}
+
+{% block title %}
+    Encyclopedia: Error
+{% endblock %}
+
+{% block body %}
+
+    <h1>Error</h1>
+
+    <div>There is no entry named {{ e_title }}.</div>
+
+    <div>You can <a href="/wiki/add/{{ e_title }}">create a {{ e_title }} entry</a> or go to the <a href="/">Home page</a>.</div>
+
+{% endblock %}
