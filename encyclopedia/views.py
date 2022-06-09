@@ -99,7 +99,7 @@ def random_entry(request):
     limit = len(entries)
     r = random.randrange(limit)
     title = entries[r]
-    return HttpResponseRedirect(reverse(f"entry", args = [title]))
+    return HttpResponseRedirect(reverse("entry", args = [title]))
 
 
 def entry(request, title):
@@ -148,7 +148,7 @@ def add(request, title=""):
             f.write(content)
             f.close()
             request.session["result"] = "success"
-            return HttpResponseRedirect(reverse(f"entry", args = [title]))
+            return HttpResponseRedirect(reverse("entry", args = [title]))
         else:
             return render(request, "encyclopedia/add.html", {
                 "form": form
@@ -175,7 +175,7 @@ def edit(request, title=""):
             f.write(content)
             f.close()
             request.session["result"] = "success"
-            return HttpResponseRedirect(reverse(f"entry", args = [title]))
+            return HttpResponseRedirect(reverse("entry", args = [title]))
         else:
             print("Form is NOT valid")
             return render(request, "encyclopedia/edit.html", {
