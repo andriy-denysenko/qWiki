@@ -34,8 +34,8 @@ tag_map["<strike>"] = [re.compile(r"((?<!~)~{2}(?!~)(.*?)(?<!~)~{2}(?!~))")]
 tag_map["<a>"] = [re.compile(r"(\[(.*?)\]\((.*?)\))")]
 
 # Marked lists: * and -
-tag_map["<li>"] = [re.compile(r"(-\s(.*))"),
-    re.compile(r"(\*\s(.*))")
+tag_map["<li>"] = [re.compile(r"^(-\s(.*))"),
+    re.compile(r"^(\*\s(.*))")
 ]
 
 # Utility regular expressions
