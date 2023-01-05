@@ -1,5 +1,5 @@
 # qWiki
-### A Wiki project for CS50 course at [prometheus.org.ua](https://prometheus.org.ua/cs50web_2021/wiki.html)
+### Wiki project for CS50 course
 
 - Allows viewing, adding and editing entries written using markdown.
 - Allows search by entry title (incl. fuzzy matches).
